@@ -1,6 +1,8 @@
 from subprocess import check_output
+import json
 
-  
+
+# cmd routine
 def getInterfaces(text):
 	markers = ["Ethernet adapter", "Адаптер беспроводной локальной сети"]
 	params = ["IPv4-адрес", "DNS-серверы"]
@@ -23,47 +25,49 @@ def setDhcpDns(name):
 	print(str(check_output("netsh interface ip set dnsservers name=\"{}\" source=dhcp".format(
 		name)), "cp866"))
 
-def setGoogleDns(name):
-	setDnsAddr(name, "8.8.8.8", 1)
-	setDnsAddr(name, "8.8.4.4", 2)
+# settings routine
+def loadSettings(fileName):
+	return json.load(open(fileName))
+
+def setFromSettings(name, settings):
+	for i in range(len(settings["settings"])):
+		setDnsAddr(name, settings["settings"][i], i+1)
 
 # CLI
-def cliShowInterfaces(interfaces):
+def cliChooseInterface(interfaces):
 	for i in range(len(interfaces)):
 		print(i, "-", interfaces[i])
-
-def cliChooseInterface(interfaces):
-	cliShowInterfaces(interfaces)
 	i = -1
 	while (i<0 or i>=len(interfaces)):
 		i = int(input("\nChoose interface:\n> "))
 	return i
 
-def cliChooseDnsSettings():
+def cliChooseDnsSettings(settings):
 	print()
 	print("0 - DHCP DNS")
-	print("1 - Google DNS")
+	for i in range(len(settings)):
+		print(i+1, "-", settings[i]["name"])
 	i = -1
-	while (i<0 or i>=2):
+	while (i<0 or i>len(settings)):
 		i = int(input("\nChoose dns settings:\n> "))
 	return i
 
-def cli():
+def cli(settings):
 	print("WARNING: app needs admin rights!\n")
 	interfaces = getInterfaces(str(check_output("ipconfig /all"), "cp866"))
 	i = cliChooseInterface(interfaces)
 	print(interfaces[i]["name"])
-	d = cliChooseDnsSettings()
+	d = cliChooseDnsSettings(settings)
 	if (d == 0):
 		setDhcpDns(interfaces[i]["name"])
-	elif (d == 1):
-		setGoogleDns(interfaces[i]["name"])
+	else:
+		setFromSettings(interfaces[i]["name"], settings[d-1])
 
 
-cli()
+settings = loadSettings("settings.conf")
+cli(settings)
 
 # todo: get interface params (ip, dns)
-# todo: choose settings
 # settings:
 # 1. Google DNS
 # netsh interface ip add dns name="Local Area Connection" addr=8.8.4.4 index=1
