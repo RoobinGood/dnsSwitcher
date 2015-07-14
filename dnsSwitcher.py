@@ -15,6 +15,17 @@ def getInterfaces(text):
 			currentPosition = text.find(m, currentPosition+1)
 	return interfaces
 
+def setDnsAddr(name, addr, index):
+	print(str(check_output("netsh interface ip add dns name=\"{}\" addr={} index={}".format(
+		name, addr, index)), "cp866"))
+
+def setDhcpDns(name):
+	print(str(check_output("netsh interface ip set dnsservers name=\"{}\" source=dhcp".format(
+		name)), "cp866"))
+
+def setGoogleDns(name):
+	setDnsAddr(name, "8.8.8.8", 1)
+	setDnsAddr(name, "8.8.4.4", 2)
 
 # CLI
 def cliShowInterfaces(interfaces):
@@ -28,11 +39,26 @@ def cliChooseInterface(interfaces):
 		i = int(input("\nChoose interface:\n> "))
 	return i
 
+def cliChooseDnsSettings():
+	print()
+	print("0 - DHCP DNS")
+	print("1 - Google DNS")
+	i = -1
+	while (i<0 or i>=2):
+		i = int(input("\nChoose dns settings:\n> "))
+	return i
+
 def cli():
+	print("WARNING: app needs admin rights!\n")
 	interfaces = getInterfaces(str(check_output("ipconfig /all"), "cp866"))
 	i = cliChooseInterface(interfaces)
 	print(interfaces[i]["name"])
-	
+	d = cliChooseDnsSettings()
+	if (d == 0):
+		setDhcpDns(interfaces[i]["name"])
+	elif (d == 1):
+		setGoogleDns(interfaces[i]["name"])
+
 
 cli()
 
