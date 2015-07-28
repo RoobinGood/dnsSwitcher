@@ -1,15 +1,21 @@
-from subprocess import check_output, CalledProcessError
+﻿from subprocess import check_output, CalledProcessError
 from os.path import isfile, join, dirname, realpath
 import json
 
 MARKERS = ["Ethernet adapter", "Адаптер беспроводной локальной сети"]
-PARAMS = ["IPv4", "DNS-серверы"]
+PARAMS = ["IPv4", "DNS-серверы", "Аренда получена"]
 
 # cmd routine
 def getInterfaces(text):
 
-	def getParam(paramName, start, end):
-		startPos = text.find(paramName, start, end);
+	def getParam(paramName, start):
+		end = len(text);
+		for m in MARKERS:
+			t = text.find(m, start+1)
+			if (t != -1):
+				end = min(end, t)
+
+		startPos = text.find(paramName, start, end)
 		if (startPos != -1):
 			startPos = text.find(":", startPos) + 2
 			endPos = text.find("\n", startPos)
@@ -18,7 +24,7 @@ def getInterfaces(text):
 				endPos = pos
 				pos = text.find("\n", endPos+1)
 			param = text[startPos:endPos]
-			param = param.replace(" ", "").replace("\r", "").replace("\n", ", ")
+			param = param.replace(" ", "_").replace("\r", "").replace("\n", ", ")
 		else:
 			param = None
 		return param
@@ -35,8 +41,7 @@ def getInterfaces(text):
 
 	for i in range(len(interfaces)):
 		for p in PARAMS:
-			param = getParam(p, interfaces[i]["pos"],
-				interfaces[i+1] if (i+1<len(interfaces)) else len(text))
+			param = getParam(p, interfaces[i]["pos"])
 			if (param != None):
 				interfaces[i][p] = param
 
@@ -44,7 +49,7 @@ def getInterfaces(text):
 
 def setDnsAddr(name, addr, index):
 	try:
-		check_output("netsh interface ip add dns name=\"{}\" addr={} index={}".format(name, addr, index))
+		# check_output("netsh interface ip add dns name=\"{}\" addr={} index={}".format(name, addr, index))
 		print("Success!")
 		return 1
 	except CalledProcessError:
